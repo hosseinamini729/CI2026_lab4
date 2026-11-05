@@ -30,8 +30,8 @@ The Generalized Klotski puzzle consists of a rectangular grid populated by recta
 ### 2.3 A\* Search & Heuristic Formulation
 
 - **Evaluation Function:** $f(n) = g(n) + h(n)$
-- **Admissible Heuristic ($h(n)$):**
-  $$h(n) = h_{\text{Manhattan}}(\text{target}, \text{exit}) + \text{blocking\_obstacles}$$
+- **Admissible Heuristic:**
+  $$h(n) = h_{\text{Manhattan}}(\text{target}, \text{exit}) + \text{blocking}_{obstacles}$$
   - _Manhattan Distance:_ Absolute horizontal and vertical steps required on an empty grid.
   - _Blocking Obstacles:_ Count of unique obstacle pieces occupying the vertical path between target piece `A` and the bottom boundary.
   - _Admissibility Proof:_ Since obstacles require at least one move to clear out of the corridor, $h(n) \le h^*(n)$ holds universally, ensuring solution optimality.
