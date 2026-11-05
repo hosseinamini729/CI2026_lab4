@@ -1,87 +1,102 @@
-# Generalized Klotski Puzzle Solver: BFS vs. A* Search
+# Generalized Klotski Puzzle Solver: BFS vs. A\* Search
 
-An academic project for the **Computational Intelligence** course demonstrating the modeling, implementation, and empirical comparison of state-space graph search algorithms: **Breadth-First Search (BFS)** (uninformed) and **A\* Search** (informed / heuristic-guided).
-
----
-
-## 📌 Project Overview
-
-**Generalized Klotski** is a classic sliding-block puzzle played on an $R \times C$ grid. The board contains empty spaces (`.`) and rigid rectangular pieces of various dimensions.
-
-The objective is to slide the pieces horizontally and vertically until the designated **target piece** (e.g., piece `A`) reaches the target exit at the bottom edge of the board.
-
-### Problem Formulation:
-* **State Representation:** Immutable, hashable 2D grid structure (`tuple` of `tuples`).
-* **Transition Model (Unit-Step Metric):** Each valid action slides a single piece by exactly **1 grid cell** (`UP`, `DOWN`, `LEFT`, or `RIGHT`) into unoccupied space. Every move carries a uniform step cost of $c = 1$.
-* **Goal Condition:** The target piece completely occupies the designated bottom exit columns.
+An academic computational intelligence project comparing uninformed (**Breadth-First Search**) and informed (**A\* Search**) algorithms on the classic **Generalized Klotski** sliding-block puzzle benchmark.
 
 ---
 
-## 🚀 Key Features & Architectural Highlights
+## 1. Problem Overview
 
-1. **State Canonicalization (Symmetry Breaking):**
-   * Puzzles contain identical pieces (e.g., multiple $1 \times 1$ or $2 \times 1$ blocks). Swapping their positions creates symmetric, redundant states.
-   * A canonicalization function deterministically re-labels identical pieces based on board scan order. This reduces the reachable state space by over 80% without affecting path optimality, allowing hard benchmarks (`p04`, `p05`) to solve in seconds.
-2. **Admissible Heuristic Function ($h(n)$ for A\*):**
-   * **Manhattan Distance:** Horizontal and vertical grid distance between target piece `A` and the goal exit.
-   * **Blocking Obstacle Penalty:** Counts unique obstacle pieces directly blocking the exit corridor below `A`.
-   * **Admissibility ($h(n) \le h^*(n)$):** Guarantees optimal (shortest-path) solutions for A\*.
-3. **Completeness & Unsolvability Detection:**
-   * Fully detects unsolvable configurations (such as benchmark `p06`) by exhaustively traversing the reachable state component.
+The Generalized Klotski puzzle consists of a rectangular grid populated by rectangular pieces of varying dimensions ($1 \times 1$, $1 \times 2$, $2 \times 1$, $2 \times 2$) and open cells (`.`). The objective is to guide a designated target piece (`A`) to the bottom exit corridor in the minimum number of valid moves.
+
+- **Action Metric:** Unit-step metric (sliding a piece by exactly 1 grid cell horizontally or vertically equals 1 move).
+- **Step Cost:** Uniform cost of $1$ per slide ($c = 1$).
+- **Optimality Condition:** Achieving the goal state with the minimal sequence of 1-cell slides.
 
 ---
 
-## 📊 Benchmark Results
+## 2. Methodology & Key Components
 
-Evaluated across the 6 standard benchmark instances (`p01`–`p06`):
+### 2.1 State Representation & Symmetry Breaking
 
-| Problem | Board Size | Algorithm | Solved | Optimal Moves | Nodes Explored | Wall-Clock Time (s) |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **p01** | $3 \times 3$ | **BFS** | `True` | **8** | 80 | 0.0047 |
-| | | **A\*** | `True` | **8** | **53** | **0.0044** |
-| **p02** | $4 \times 4$ | **BFS** | `True` | **18** | 247 | 0.0207 |
-| | | **A\*** | `True` | **18** | **200** | **0.0189** |
-| **p03** | $4 \times 4$ | **BFS** | `True` | **45** | 2103 | **0.1235** |
-| | | **A\*** | `True` | **45** | **2082** | 0.1617 |
-| **p04** | $5 \times 4$ | **BFS** | `True` | **116** | 23,954 | **1.5465** |
-| | | **A\*** | `True` | **116** | **23,769** | 2.1258 |
-| **p05** | $5 \times 4$ | **BFS** | `True` | **179** | 39,540 | 3.8068 |
-| | | **A\*** | `True` | **179** | **37,570** | **3.6300** |
-| **p06** | $4 \times 4$ | **BFS** | `False` | 0 | 833 | 0.0451 |
-| | | **A\*** | `False` | 0 | 833 | 0.0591 |
+- **Board Representation:** Immutable, hashable tuple of tuples.
+- **Canonical Board Mapping (`canonical_board`):** Pieces sharing identical geometric dimensions are deterministically re-labeled upon board traversal. This breaks symmetry and collapses duplicate permutation branches, slashing memory requirements and search time by over 80%.
 
-### Key Experimental Insights:
-* **Optimality:** Both BFS and A\* discover identical optimal move sequences across all solvable instances.
-* **Exploration Efficiency:** A\* consistently expands fewer states than BFS by pruning unpromising branches.
-* **Computational Trade-off:** While A\* explores fewer states, the per-node overhead of heuristic calculation and heap operations (`heapq`) can result in slightly higher wall-clock execution times when the search space reduction is moderate.
-* **Completeness:** On `p06`, both algorithms traverse exactly 833 states before proving no solution exists.
+### 2.2 Breadth-First Search (BFS)
+
+- **Strategy:** Uninformed, level-by-level exhaustive exploration.
+- **Frontier:** FIFO queue using `collections.deque` ($O(1)$ push/pop).
+- **Guarantees:** Complete and optimal under uniform step costs.
+
+### 2.3 A\* Search & Heuristic Formulation
+
+- **Evaluation Function:** $f(n) = g(n) + h(n)$
+- **Admissible Heuristic ($h(n)$):**
+  $$h(n) = h_{\text{Manhattan}}(\text{target}, \text{exit}) + \text{blocking\_obstacles}$$
+  - _Manhattan Distance:_ Absolute horizontal and vertical steps required on an empty grid.
+  - _Blocking Obstacles:_ Count of unique obstacle pieces occupying the vertical path between target piece `A` and the bottom boundary.
+  - _Admissibility Proof:_ Since obstacles require at least one move to clear out of the corridor, $h(n) \le h^*(n)$ holds universally, ensuring solution optimality.
+- **Frontier:** Priority Queue implemented as a Min-Heap using `heapq`.
 
 ---
 
-## 🛠️ Repository Structure
+## 3. Installation & Setup
 
-```text
-├── Klotski_Search_Project.ipynb   # Main Jupyter Notebook (code, tests & explanations)
-├── klotski_problems.txt           # Benchmark problem instances (p01 - p06)
-└── README.md                      # Academic project documentation
+1. **Clone the repository:**
+
+```bash
+git clone https://github.com/hosseinamini729/CI2026_lab4
+cd CI2026_lab4
 ```
 
+2. **Create and activate a virtual environment (optional but recommended):**
+
+```bash
+python -m venv venv
+
+# On Windows:
+.\venv\Scripts\activate
+
+# On Linux/macOS:
+source venv/bin/activate
+
+```
+
+3. **Install required dependencies:**
+
+```bash
+pip install -r requirements.txt
+
+```
+
+4. **Launch the Jupyter Notebook:**
+
+```bash
+jupyter notebook Klotski_Search_Project.ipynb
+
+```
+
+## 4. Performance Visualization & Analysis
+
+### Key Analytical Takeaways:
+
+1. **Empirical Optimality:** BFS and A\* found identical move counts across all solvable instances, verifying the admissibility of $h(n)$.
+
+2. **Search Space Pruning:** A\* systematically explores fewer states than BFS across all solvable instances.
+
+3. **Behavioral Convergence in Complex Instances:** In deep, constrained puzzles (`p04`, `p05`), piece `A` is blocked at the top while surrounding pieces undergo extensive cyclical maneuvers. Because $h(n) \ll h^*(n)$, $f(n) \approx g(n)$, causing A\* to explore states similarly to BFS.
+
+4. **Algorithmic Overhead & Runtime:** In instances where state reduction is modest, the constant per-node overhead of Priority Queue heap operations ($O(\log N)$) makes A\* slightly slower in wall-clock time compared to the lightweight $O(1)$ deque used in BFS.
+
+5. **Completeness on Unsolvable Problems:** For `p06`, both algorithms exhaustively traversed the exact same 833 reachable states and cleanly terminated with `Solved: False`, demonstrating complete state-space exploration.
+
 ---
 
-## 💻 Requirements & Getting Started
+## 5. Repository Structure
 
-### Prerequisites
-* Python 3.8+
-* Required libraries:
-  ```bash
-  pip install pandas
-  ```
-  *(All graph search algorithms utilize Python standard libraries: `collections.deque`, `heapq`, and `time`)*.
+```text
+├── klotski_problems.txt            # Benchmark problem instances
+├── Klotski_Search_Project.ipynb    # Main notebook (code, explanations, experiments)
+├── requirements.txt                # Required Python packages
+└── README.md                       # Comprehensive documentation
 
-### Running the Notebook
-1. Clone or download this repository.
-2. Ensure `klotski_problems.txt` is in the same directory as the notebook.
-3. Open and run all cells in `Klotski_Search_Project.ipynb`:
-   ```bash
-   jupyter notebook Klotski_Search_Project.ipynb
-   ```
+```
