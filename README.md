@@ -1,25 +1,87 @@
-# Computational Intelligence Project: Solving Generalized Klotski using BFS and A\* Search
+# Generalized Klotski Puzzle Solver: BFS vs. A* Search
 
-## 1. Project Introduction
+An academic project for the **Computational Intelligence** course demonstrating the modeling, implementation, and empirical comparison of state-space graph search algorithms: **Breadth-First Search (BFS)** (uninformed) and **A\* Search** (informed / heuristic-guided).
 
-Search algorithms form a foundational pillar of Artificial Intelligence and Computational Intelligence, enabling autonomous agents to solve complex puzzles, plan actions, and navigate large state spaces. In this project, we implement, analyze, and compare two classic graph search algorithms—**Breadth-First Search (BFS)** as an uninformed search method, and **A\* Search** as an informed (heuristic-guided) search method—to find optimal solutions for the **Generalized Klotski** sliding-block puzzle.
+---
 
-## 2. Problem Definition
+## 📌 Project Overview
 
-**Generalized Klotski** is played on a rectangular grid of size $R \times C$ containing empty cells (`.`) and various rectangular pieces of different dimensions (e.g., $1 \times 1$, $1 \times 2$, $2 \times 1$, $2 \times 2$). Cells sharing the same alphanumeric label belong to a single rigid piece that must move as one unit.
+**Generalized Klotski** is a classic sliding-block puzzle played on an $R \times C$ grid. The board contains empty spaces (`.`) and rigid rectangular pieces of various dimensions.
 
-- **Initial State:** The starting configuration of pieces on the $R \times C$ board as specified in the problem instance.
-- **Valid Actions (Unit-Step Metric):** In our problem formulation, a single valid move consists of sliding any single piece by **exactly one grid cell** in one of four cardinal directions (`UP`, `DOWN`, `LEFT`, `RIGHT`), provided that all destination cells newly occupied by that piece are currently empty (`.`) and within board boundaries. Every 1-cell slide has a uniform step cost of $1$.
-- **Goal State:** Any board configuration in which the designated `target` piece (e.g., piece `A`) sits at the bottom edge of the board and completely covers the specified `exit bottom` column indices (0-indexed from left to right).
+The objective is to slide the pieces horizontally and vertically until the designated **target piece** (e.g., piece `A`) reaches the target exit at the bottom edge of the board.
 
-## 3. Background and Theoretical Concepts
+### Problem Formulation:
+* **State Representation:** Immutable, hashable 2D grid structure (`tuple` of `tuples`).
+* **Transition Model (Unit-Step Metric):** Each valid action slides a single piece by exactly **1 grid cell** (`UP`, `DOWN`, `LEFT`, or `RIGHT`) into unoccupied space. Every move carries a uniform step cost of $c = 1$.
+* **Goal Condition:** The target piece completely occupies the designated bottom exit columns.
 
-To solve Klotski systematically, we model the puzzle as a **State-Space Graph**:
+---
 
-- **Node (State):** Represents a unique arrangement of all pieces on the board at a given moment.
-- **Edge (Action/Transition):** Connects one board state to another via a single valid 1-cell piece movement.
-- **Search Space:** The complete set of all reachable board configurations starting from the initial board.
-- **Path:** A sequence of valid moves transforming the initial state into another state. An **optimal path** achieves the goal state in the minimum possible number of moves.
-- **Uninformed vs. Informed Search:**
-  - _Uninformed (Blind) Search_ explores the search space systematically without any clue about which states are closer to the goal (e.g., **BFS**).
-  - _Informed (Heuristic) Search_ leverages domain-specific knowledge via a heuristic function $h(n)$ to estimate how many moves remain to reach the goal, prioritizing more promising states (e.g., **A\***).
+## 🚀 Key Features & Architectural Highlights
+
+1. **State Canonicalization (Symmetry Breaking):**
+   * Puzzles contain identical pieces (e.g., multiple $1 \times 1$ or $2 \times 1$ blocks). Swapping their positions creates symmetric, redundant states.
+   * A canonicalization function deterministically re-labels identical pieces based on board scan order. This reduces the reachable state space by over 80% without affecting path optimality, allowing hard benchmarks (`p04`, `p05`) to solve in seconds.
+2. **Admissible Heuristic Function ($h(n)$ for A\*):**
+   * **Manhattan Distance:** Horizontal and vertical grid distance between target piece `A` and the goal exit.
+   * **Blocking Obstacle Penalty:** Counts unique obstacle pieces directly blocking the exit corridor below `A`.
+   * **Admissibility ($h(n) \le h^*(n)$):** Guarantees optimal (shortest-path) solutions for A\*.
+3. **Completeness & Unsolvability Detection:**
+   * Fully detects unsolvable configurations (such as benchmark `p06`) by exhaustively traversing the reachable state component.
+
+---
+
+## 📊 Benchmark Results
+
+Evaluated across the 6 standard benchmark instances (`p01`–`p06`):
+
+| Problem | Board Size | Algorithm | Solved | Optimal Moves | Nodes Explored | Wall-Clock Time (s) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **p01** | $3 \times 3$ | **BFS** | `True` | **8** | 80 | 0.0047 |
+| | | **A\*** | `True` | **8** | **53** | **0.0044** |
+| **p02** | $4 \times 4$ | **BFS** | `True` | **18** | 247 | 0.0207 |
+| | | **A\*** | `True` | **18** | **200** | **0.0189** |
+| **p03** | $4 \times 4$ | **BFS** | `True` | **45** | 2103 | **0.1235** |
+| | | **A\*** | `True` | **45** | **2082** | 0.1617 |
+| **p04** | $5 \times 4$ | **BFS** | `True` | **116** | 23,954 | **1.5465** |
+| | | **A\*** | `True` | **116** | **23,769** | 2.1258 |
+| **p05** | $5 \times 4$ | **BFS** | `True` | **179** | 39,540 | 3.8068 |
+| | | **A\*** | `True` | **179** | **37,570** | **3.6300** |
+| **p06** | $4 \times 4$ | **BFS** | `False` | 0 | 833 | 0.0451 |
+| | | **A\*** | `False` | 0 | 833 | 0.0591 |
+
+### Key Experimental Insights:
+* **Optimality:** Both BFS and A\* discover identical optimal move sequences across all solvable instances.
+* **Exploration Efficiency:** A\* consistently expands fewer states than BFS by pruning unpromising branches.
+* **Computational Trade-off:** While A\* explores fewer states, the per-node overhead of heuristic calculation and heap operations (`heapq`) can result in slightly higher wall-clock execution times when the search space reduction is moderate.
+* **Completeness:** On `p06`, both algorithms traverse exactly 833 states before proving no solution exists.
+
+---
+
+## 🛠️ Repository Structure
+
+```text
+├── Klotski_Search_Project.ipynb   # Main Jupyter Notebook (code, tests & explanations)
+├── klotski_problems.txt           # Benchmark problem instances (p01 - p06)
+└── README.md                      # Academic project documentation
+```
+
+---
+
+## 💻 Requirements & Getting Started
+
+### Prerequisites
+* Python 3.8+
+* Required libraries:
+  ```bash
+  pip install pandas
+  ```
+  *(All graph search algorithms utilize Python standard libraries: `collections.deque`, `heapq`, and `time`)*.
+
+### Running the Notebook
+1. Clone or download this repository.
+2. Ensure `klotski_problems.txt` is in the same directory as the notebook.
+3. Open and run all cells in `Klotski_Search_Project.ipynb`:
+   ```bash
+   jupyter notebook Klotski_Search_Project.ipynb
+   ```
